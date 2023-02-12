@@ -1,0 +1,374 @@
+documentclass[12pt, titlepage]{article}
+
+usepackage{parskip}
+usepackage{algorithm}
+usepackage{float}
+usepackage[colorlinks=true]{hyperref}
+
+hypersetup{
+    colorlinks=true,
+    linkcolor = blue,
+    filecolor=magenta, 
+    urlcolor=cyan,
+}
+
+usepackage[T1]{fontenc}
+usepackage[utf8]{inputenc}
+usepackage{amsmath}
+usepackage{amssymb}
+usepackage[top=2cm, bottom=2cm, left=2cm, right=2cm]{geometry}
+usepackage{graphicx}
+usepackage{float}
+usepackage{multicol}
+usepackage{lipsum}
+usepackage{ragged2e}
+usepackage{eurosym}
+usepackage{indentfirst}
+usepackage{minted}
+usepackage{titlesec}
+usepackage{pifont}
+usepackage{url}
+usepackage{epsf}
+usepackage{pdfpages}
+usepackage{amsmath}
+DeclareMathOperator{argmax}{arg,max}
+DeclareMathOperator{argmin}{arg,min}
+
+begin{document}
+
+
+begin{titlepage}
+newcommand{HRule}{rule{linewidth}{0.5mm}}
+center
+
+includegraphics[scale=0.3]{IPPARIS.jpg}[3.4cm]
+
+HRule [0.4cm]
+{ huge bfseries href{httpsarxiv.orgabs1710.02298}{Rainbow Combining Improvements in Deep Reinforcement Learning} [1.5cm]
+Analysis and Empirical study[0.4cm] }
+HRule [2cm]
+
+
+textsc{large
+MAP670C - Reinforcement Learning}
+[1cm]
+textsc{large href{httpswww.ip-paris.freducationmastersmention-mathematiques-appliquees-statistiquesmaster-year-2-data-science}{Master 2 - Data Science}} [5.4cm]
+
+Marc Veron, Samy Mdihi, Timothe Guillaume-Li
+[0.4cm]
+today  [1cm]
+end{titlepage}
+
+tableofcontents
+newpage
+
+section{Introduction}
+
+Rainbow  
+begin{itemize}
+item DQN
+item DDQN
+item Prioritized DDQN
+item Dueling DDQN
+item Multi-step DQN
+item Distributional DQN
+item Noisy DQN
+end{itemize}
+quad
+
+href{httpsgithub.commverontarabeuxRL_Rainbow}
+
+newpage
+section{Review of the 6 proposed DQN variantes}
+
+subsection{DQN}
+quad DQN (Deep Q-Network) is a popular deep reinforcement learning algorithm that is used to solve problems involving sequential decision-making. The algorithm was first introduced by Google DeepMind in a 2015 paper, Human-level control through deep reinforcement learning.
+
+The basic idea behind DQN is to approximate the optimal action-value function (also known as the Q-function) using a neural network. We call it Q, which is given by
+$$Q^(s, a) = max_{a'} Q(s, a')$$
+where s is the state, a is the action, and Q(s, a) is the estimated action-value function.
+
+The Q-function is a mapping from states and actions to a scalar reward, which represents the expected return (sum of rewards) from a given state and action. The goal of DQN is to learn the Q-function in a way that allows the agent to make good decisions about which actions to take in order to maximize its reward.
+
+In practical implementation, DQN uses an experience replay mechanism, where the agent stores its experiences (state, action, reward, next state) in a buffer and samples from this buffer to learn. The neural network that approximates the Q-function is trained on these sampled experiences using supervised learning, with the target being the expected return (reward + discounted future reward).
+
+Another important component of DQN is the use of a target network. This is a separate neural network that is used to provide stable targets for training the Q-function. The target network is updated less frequently than the Q-network, which helps to stabilize the learning process and reduce the variance in the updates.
+
+DQN also employs a number of additional techniques to improve its performance, such as using a clipped double-Q learning approach to reduce over-estimation of action values, and using a prioritized experience replay to prioritize important experiences for learning.
+
+Overall, DQN has been shown to be effective in solving a variety of problems, from playing video games to controlling robots. It remains a popular deep reinforcement learning algorithm due to its simplicity and empirical success.
+
+textbf{Implementation}
+In DQN, the action-value function is approximated using a neural network with parameters $theta$, so that
+
+$$Q(s, a; theta) approx Q^(s, a)$$
+
+The neural network is trained using supervised learning, where the target values are given by
+
+$$y_i = r + gamma max_{a'} Q(s', a'; theta_{target})$$
+
+where r is the immediate reward, $gamma$ is the discount factor, s' is the next state, and $theta_{target}$ are the parameters of a target network that is updated less frequently than the main network.
+
+The loss function used to update the network parameters $theta$ is given by the mean squared error between the predicted and target Q-values
+
+$$L(theta) = frac{1}{N} sum_{i=1}^{N} left(y_i - Q(s, a; theta)right)^2$$
+
+where N is the batch size.
+
+
+subsection{DDQN}
+quad DDQN (Double Deep Q-Network) is an improvement over the vanilla DQN (Deep Q-Network) algorithm that was introduced to address a well-known issue with the original DQN algorithm, called the overestimation problem.
+
+In DQN, the Q-network is used to both select actions and evaluate the expected reward for taking those actions. This can lead to an overestimation of the true value of certain actions, as the Q-network may have a tendency to over-optimistically estimate the expected reward. DDQN addresses this issue by decoupling the action selection from the value estimation. In DDQN, two separate networks are used a policy network for selecting actions, and a target network for evaluating the expected reward for those actions.
+The policy network is updated in the same way as in DQN, by minimizing the mean squared error between the predicted and target Q-values. The target network, on the other hand, is updated less frequently and provides a more stable target
+
+In DDQN, the target values are calculated using the policy network to select the action, and the target network to evaluate the expected reward
+
+$$y_i = r + gamma Q(s', argmax_{a'} Q(s', a'; theta), theta_{target})$$
+
+This decouples the action selection from the value estimation, reducing the risk of overestimation and improving the stability of the learning process.
+
+
+subsection{Prioritized DDQN}
+quad Prioritized DQN (PDQN) is an extension of the DQN algorithm that addresses the issue of experience replay, where the replay buffer stores a fixed amount of experience transitions and samples from the buffer at random to train the Q-network. This can lead to sampling bias, where important transitions are under-represented and unimportant transitions are over-represented.
+
+PDQN addresses this issue by using a prioritized replay buffer, where transitions are stored with a priority value, and samples are drawn from the buffer with a probability proportional to their priority. This results in a higher likelihood of sampling important transitions, and a lower likelihood of sampling unimportant transitions.
+
+The priority of a transition (s, a, r, s') is given by the magnitude of the temporal difference (TD) error, which measures the difference between the predicted and target Q-values
+
+$$p = left delta right + epsilon$$
+
+where $$delta = r + gamma max_{a'} Q(s', a'; theta_{target}) - Q(s, a; theta)$$
+
+$epsilon$ is a small constant to ensure that all transitions have a positive priority, and $theta$ and $theta_{target}$ are the parameters of the Q-network and target network, respectively.
+
+The probability of sampling a transition from the replay buffer is given by
+
+$$P(i) = frac{p_i^alpha}{sum_{j=1}^{N} p_j^alpha}$$
+
+where $alpha$ is a hyperparameter that determines the level of prioritization, with $alpha = 0$ resulting in uniform sampling and $alpha = 1$ resulting in full prioritization.
+
+In terms of differences with simple DQN and DDQN, PDQN combines the use of a prioritized replay buffer with either a simple DQN or DDQN algorithm. The main difference is that PDQN addresses the sampling bias issue in the replay buffer, while simple DQN and DDQN do not. The choice of using either a simple DQN or DDQN algorithm depends on the specific problem and trade-offs in terms of stability and accuracy.
+
+subsection{Dueling DDQN}
+quad Dueling DQN is another extension of the DQN algorithm that improves the estimation of Q-values. In traditional DQN, the Q-network outputs a single Q-value for each (state, action) pair, but it is often the case that some actions are more valuable than others in a given state, independent of the values of the other actions.
+
+The dueling DQN architecture separates the estimation of state values (V) and action advantages (A) in the Q-network, and combines them to form the final Q-value for each action
+
+$$Q(s, a; theta) = V(s; theta) + A(s, a; theta) - frac{1}{K} sum_{a} A(s, a; theta)$$
+
+where K is the number of actions and $theta$ are the parameters of the Q-network. This allows the network to focus on learning the values of states and the relative advantages of actions, and results in a more compact representation of the Q-function.
+
+Compared to traditional DQN, dueling DQN has a more efficient representation of the Q-function, as it separates the estimation of state values and action advantages. This can lead to improved performance and stability in certain environments. However, compared to prioritized DQN and DDQN, dueling DQN does not address the issue of sampling bias in the replay buffer and does not incorporate double Q-learning. The choice between using dueling DQN, prioritized DQN, or DDQN depends on the specific problem and trade-offs in terms of stability, accuracy, and computational efficiency.
+
+
+subsection{Multi-step DQN}
+quad  In Multi-step learning DQN, the agent considers the cumulative rewards from multiple steps ahead (n-steps) to update the Q-values. This helps the agent to make decisions based on a longer-term perspective and can lead to faster convergence and improved performance. 
+
+The target value is defined as
+
+$$y_i = r_t + gamma  r_{t+1} + ... + gamma^{n-1}  r_{t+n-1} + gamma^n  max_{a'} Q(s_{t+n}, a'; theta_{target})$$
+
+where n is the number of steps and $theta_{target}$ is a target network that is used to stabilize the learning process.
+
+The update rule for $Q(s, a; theta)$ remains the same as in standard DQN, but with the updated target value $y_i$
+
+$$Q(s, a; theta) = Q(s, a; theta) + alpha left(y_i - Q(s, a; theta)right)$$
+
+The Multi-step DQN has been shown to improve the stability and convergence of the learning process compared to standard DQN. It also allows the agent to have a better understanding of the long-term consequences of its actions, as multiple steps of rewards are taken into account.
+
+subsection{Distributional DQN}
+quad Distributional DQN (C51) is a variant of the DQN algorithm that instead of estimating the expected return for a state-action pair, it models the full distribution of returns. This allows for a better representation of the uncertainty in the values, and can lead to better sample efficiency and stability in learning.
+
+Formally, let Z be the set of possible returns and C be a categorical distribution over Z, such that $C_z$ is the probability of observing a return of z. Then, the distributional Q-function is defined as
+
+$$ Q(s, a; theta) = C(s, a; theta) $$
+
+where $theta$ represents the parameters of the distribution. During learning, the objective is to minimize the categorical cross-entropy loss between the predicted distribution and the distribution of returns experienced in the environment
+
+$$ L(theta) = -mathbb{E}{(s, a, r, s') sim rho} [ sum{z in Z} C_z(s, a; theta) cdot mathbb{1}(z = r + gamma max_{a'} Q(s', a'; theta_{target})) ] $$
+
+where $rho$ is the replay buffer and $theta_{target}$ represents the fixed target network.
+
+In practical terms, the distributional Q-function can be implemented by using a neural network to predict the parameters of the categorical distribution, rather than a single scalar value as in a traditional DQN. The categorical distribution can then be used to generate samples for computing the Bellman update, rather than relying on the max operator used in traditional Q-learning.
+
+subsection{Noisy DQN}
+quad Noisy DQN is a variant of Deep Q-Networks that addresses the issue of exploration in reinforcement learning. The traditional approach in DQN is to have a fixed $epsilon$-greedy exploration strategy, where with a probability of $epsilon$, a random action is selected, and with a probability of $1-epsilon$, the action with the highest estimated Q-value is selected. The Noisy DQN algorithm replaces the fixed $epsilon$-greedy exploration strategy with a learnable, noise-based exploration strategy.
+
+In Noisy DQN, instead of having a deterministic estimate of the Q-value for each action, a distribution over the Q-value is estimated. The mean of this distribution represents the estimated Q-value, and the standard deviation represents the uncertainty in the estimate. At each timestep, the agent selects an action by sampling from a Gaussian distribution centered at the mean Q-value estimate, and with a standard deviation that is a learned parameter.
+
+The idea behind Noisy DQN is that, as the agent learns more about the environment and its dynamics, the uncertainty in the Q-value estimates will decrease, and the agent will become more confident in its actions. This will result in the agent gradually reducing the standard deviation of the Gaussian exploration policy and eventually converge to a deterministic policy that selects the action with the highest estimated Q-value.
+
+In comparison with other DQN algorithms, Noisy DQN provides a more flexible and adaptive exploration strategy that can adjust to the changing uncertainty in the Q-value estimates over time. Additionally, because the noise is generated by a learnable parameter, it is not as subject to the over-exploration problem that can occur with a fixed $epsilon$-greedy strategy. However, like other DQN algorithms, Noisy DQN requires the use of experience replay and target networks to stabilize the learning process and prevent overfitting.
+
+The action-value function estimate can then be represented as
+
+$$Q(s, a; theta) = mu(s, a; theta) + sigma(s, a; theta) cdot varepsilon$$
+
+where $mu(s, a; theta)$ is the mean estimate of the action-value function, $sigma(s, a; theta)$ is the standard deviation, and $epsilon$ is a random sample from a Gaussian distribution with mean zero and unit variance.
+
+In the Noisy DQN algorithm, the mean estimate of the action-value function is updated using the Bellman equation, while the standard deviation is learned using backpropagation. The standard deviation is updated during the learning process to ensure that the noise added to the estimate is balanced between exploration and exploitation. This can be represented as
+
+$$L(theta) = frac{1}{N} sum_{i} left( y_i - Q(s, a; theta) right)^2 + text{regularization term}$$
+
+subsection{Integrated Agent  Rainbow}
+
+quad Rainbow is an integrated agent that combines several state-of-the-art deep reinforcement learning algorithms into a single framework. It could be likened to ensemble methods in Machine Learning, where a single expert can be repeated multiple times, or multiple experts can be combined. The Rainbow of the Deepmind team combines all the previous algorithm.
+begin{itemize}
+    item DQN 
+    item DDQN
+    item Prioritized DQN
+    item Dueling DQN
+    item Multi-step DQN
+    item Noisy DQN
+    item Distributional DQN
+end{itemize}
+
+The idea behind Rainbow is to combine the strengths of these different algorithms to produce a single, more robust agent that can perform well in a wider range of environments. To do this, it combines the different algorithms by combining their neural network architectures and training procedures. This way, the strengths of each algorithm can complement each other and produce a more robust and versatile agent.
+
+newpage
+section{Implementation  financial data }
+
+
+
+newpage
+section{Extension  integrating pure policy-based algorithms}
+
+subsection{Actor-Critic algorithms and A3C}
+quad Value-based reinforcement learning algorithms aim to estimate the value function, which gives the expected future rewards for each state or state-action pair. For example, in the case of DQN, the algorithm estimates the state-value function Q(s, a), which gives the expected future rewards for each state-action pair (s, a).
+
+Policy-based reinforcement learning algorithms aim to directly learn the policy, which maps states to actions. The policy can be deterministic or stochastic. The goal of the policy is to maximize the expected cumulative reward.
+
+Actor-Critic algorithms are a type of policy-based reinforcement learning algorithm. They consist of two components an actor network that outputs actions and a critic network that estimates the expected future rewards for each state-action pair. The actor network is updated based on the gradient of the expected cumulative reward with respect to the network parameters, and the critic network is updated based on the temporal difference error between the predicted and observed rewards.
+
+A3C, which stands for Asynchronous Advantage Actor-Critic, is a variant of the Actor-Critic reinforcement learning algorithm. Like other Actor-Critic algorithms, it consists of two components an actor network that outputs actions, and a critic network that estimates the expected future rewards for each state-action pair.
+
+The key difference between A3C and traditional Actor-Critic algorithms is that A3C is an asynchronous algorithm that allows multiple instances of the algorithm to be run in parallel, each with its own environment and network. The parallel instances interact with the environment and update their network parameters independently, leading to a more efficient exploration of the state space. The updated network parameters are then combined in a synchronous manner to form the final updated parameters.
+
+A3C can be formalized as follows. Given a state $s_t$ and an action $a_t$ taken in that state, the critic network estimates the expected future reward
+$$ V(s_t; theta_v) = mathbb{E}[R_t  s_t, theta_v ] $$
+
+where $theta_v$ are the parameters of the critic network. The actor network outputs a probability distribution over actions given a state
+
+$$ pi(a_t  s_t; theta_{pi}) = Pr[A_t = a_t  s_t, theta_{pi}] $$
+
+where $theta_{pi}$ are the parameters of the actor network. The actor and critic networks are trained to maximize the expected cumulative reward, which is equivalent to minimizing the negative expected cumulative reward. So the loss function for the Actor-Critic algorithm, given parameters $theta_{pi}$ for the policy and $theta_v$ for the value function, can be formalized as
+
+$$ L(theta_{pi}, theta_v) = -mathbb{E}[sum_{t=0}^{infty} gamma^t R_t  s_1, theta_{pi}, theta_v] $$
+
+where $gamma$ is the discount factor and $R_t$ is the reward at time step t. The parameters $theta_{pi}$ and $theta_v$ are updated using gradient descent and backpropagation.
+
+In summary, A3C is a parallel and asynchronous variant of the Actor-Critic algorithm that allows for more efficient exploration of the state space, leading to improved learning performance.
+
+newpage
+section{Conclusion}
+quad
+
+
+
+
+
+
+newpage
+
+appendix 
+section{}
+begin{figure}[H]
+    centering
+    includegraphics{detail_generator.png}
+    caption{Generator structure for the multivariate simulation case}
+    label{fig1}
+end{figure}
+
+begin{figure}[H]
+    centering
+    includegraphics{detail_discriminator.png}
+    caption{Discriminator structure for the multivariate simulation case}
+    label{fig2}
+end{figure}
+
+section{}
+
+begin{figure}[H]
+    centering
+    includegraphics{results_1.png}
+    caption{Results on the AD and KE metrics for the 3 training methods  Wasserstein GAN, Classical GAN, and Metropolis Hasting GAN}
+    label{fig3}
+end{figure}
+
+begin{figure}[H]
+    centering
+    includegraphics{trainset.png}
+    caption{Training set  temperature data distribution of the 6 stations}
+    label{fig4}
+end{figure}
+begin{figure}[H]
+    centering
+    includegraphics{testset.png}
+    caption{Test set of the first challenge  temperature data distribution of the 6 known stations}
+    label{fig5}
+end{figure}
+begin{figure}[H]
+    centering
+    includegraphics{WGAN_1.png}
+    caption{SST simulation with WGAN}
+    label{fig6}
+end{figure}
+begin{figure}[H]
+    centering
+    includegraphics{GAN_1.png}
+    caption{SST simulation with GAN}
+    label{fig7}
+end{figure}
+begin{figure}[H]
+    centering
+    includegraphics{MH_GAN_1.png}
+    caption{SST simulation with MHGAN}
+    label{fig8}
+end{figure}
+
+section{}
+
+
+begin{figure}[H]
+    centering
+    includegraphics{results_2.png}
+    caption{Results on the AD and KE metrics for the custom CcGAN}
+    label{fig9}
+end{figure}
+
+
+begin{figure}[H]
+    centering
+    includegraphics{SimulatedStations.png}
+    caption{Visualisation of the training stations and some artificial neighbours}
+    label{fig10}
+end{figure}
+
+
+begin{figure}[H]
+    centering
+    includegraphics{testset2.png}
+    caption{Test set of the second challenge  temperature data distribution of 6 unseen stations}
+    label{fig11}
+end{figure}
+
+begin{figure}[H]
+    centering
+    includegraphics{CcGAN.png}
+    caption{Continuous conditional SST simulation with custom CcGAN}
+    label{fig12}
+end{figure}
+
+begin{figure}[H]
+    centering
+    includegraphics{detail_generator_2.png}
+    caption{Detailed Conditional Generator structure  first_net is the CNN, bigblock the main FC layers, and lastblock the last FC layers (after labels incorporation)}
+    label{fig13}
+end{figure}
+
+section{}
+small
+include{notebook.tex}
+
+end{document}
