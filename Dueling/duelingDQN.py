@@ -246,7 +246,7 @@ class Config:
 
     def __init__(self):
         ################################## env hyperparameters ###################################
-        self.algo_name = 'DQN' # algorithmic name
+        self.algo_name = 'duelingDQN' # algorithmic name
         self.env_name = 'custom_trading_env' # environment name
         self.device = torch.device(
             "cuda" if torch.cuda.is_available() else "cpu")  # examine GPU
@@ -334,7 +334,7 @@ if __name__ == '__main__':
     fig, ax = plt.subplots(1, 1, figsize=(10, 7))  # plot the test result
     width = 0.3
     x = np.arange(len(stocks))
-    ax.bar(x, rewards, width=width, color='salmon', label='DQN')
+    ax.bar(x, rewards, width=width, color='salmon', label=cfg.algo_name)
     ax.bar(x+width, buy_and_hold_rewards, width=width, color='orchid', label='Buy and Hold')
     ax.set_xticks(x+width/2)
     ax.set_xticklabels(stocks, fontsize=12)

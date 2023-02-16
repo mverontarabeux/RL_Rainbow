@@ -77,35 +77,115 @@ class ReplayBuffer:
     def __len__(self):
         return len(self.buffer)
 
+class NoisyLinear(nn.Module):
+    """Noisy linear module for NoisyNet.
+    
+    Attributes:
+        in_features (int): input size of linear module
+        out_features (int): output size of linear module
+        std_init (float): initial std value
+        weight_mu (nn.Parameter): mean value weight parameter
+        weight_sigma (nn.Parameter): std value weight parameter
+        bias_mu (nn.Parameter): mean value bias parameter
+        bias_sigma (nn.Parameter): std value bias parameter
+        
+    """
+
+    def __init__(self, in_features: int, out_features: int, std_init: float = 0.5):
+        """Initialization."""
+        super(NoisyLinear, self).__init__()
+        
+        self.in_features = in_features
+        self.out_features = out_features
+        self.std_init = std_init
+
+        self.weight_mu = nn.Parameter(torch.Tensor(out_features, in_features))
+        self.weight_sigma = nn.Parameter(
+            torch.Tensor(out_features, in_features)
+        )
+        self.register_buffer(
+            "weight_epsilon", torch.Tensor(out_features, in_features)
+        )
+
+        self.bias_mu = nn.Parameter(torch.Tensor(out_features))
+        self.bias_sigma = nn.Parameter(torch.Tensor(out_features))
+        self.register_buffer("bias_epsilon", torch.Tensor(out_features))
+
+        self.reset_parameters()
+        self.reset_noise()
+
+    def reset_parameters(self):
+        """Reset trainable network parameters (factorized gaussian noise)."""
+        mu_range = 1 / math.sqrt(self.in_features)
+        self.weight_mu.data.uniform_(-mu_range, mu_range)
+        self.weight_sigma.data.fill_(
+            self.std_init / math.sqrt(self.in_features)
+        )
+        self.bias_mu.data.uniform_(-mu_range, mu_range)
+        self.bias_sigma.data.fill_(
+            self.std_init / math.sqrt(self.out_features)
+        )
+
+    def reset_noise(self):
+        """Make new noise."""
+        epsilon_in = self.scale_noise(self.in_features)
+        epsilon_out = self.scale_noise(self.out_features)
+
+        # outer product
+        self.weight_epsilon.copy_(epsilon_out.ger(epsilon_in))
+        self.bias_epsilon.copy_(epsilon_out)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Forward method implementation.
+        
+        We don't use separate statements on train / eval mode.
+        It doesn't show remarkable difference of performance.
+        """
+        return F.linear(
+            x,
+            self.weight_mu + self.weight_sigma * self.weight_epsilon,
+            self.bias_mu + self.bias_sigma * self.bias_epsilon,
+        )
+    
+    @staticmethod
+    def scale_noise(size: int) -> torch.Tensor:
+        """Set scale to make noise (factorized gaussian noise)."""
+        x = torch.randn(size)
+
+        return x.sign().mul(x.abs().sqrt())
+
 
 class Network(nn.Module):
     def __init__(self, state_dim, action_dim, hidden_dim=128):
         super(Network, self).__init__()
-        self.fc1 = nn.Linear(state_dim, hidden_dim)  # input layer
-        self.fc2 = nn.Linear(hidden_dim, hidden_dim)  # hidden layer
-        self.fc3 = nn.Linear(hidden_dim, action_dim)  # output layer
+        self.feature = NoisyLinear(state_dim, hidden_dim)  # input layer
+        self.NL1 = NoisyLinear(hidden_dim, hidden_dim)  # hidden layer
+        self.NL2 = NoisyLinear(hidden_dim, action_dim)  # output layer
         self.model = nn.Sequential(
-            self.fc1,
+            self.feature,
             nn.ReLU(),
-            self.fc2,
+            self.NL1,
             nn.ReLU(),
-            self.fc3
+            self.NL2
         )
 
     def forward(self, x):
         # activation function
         return self.model(x)
 
-class DDQN:
+    def reset_noise(self):
+        # activation function
+        self.NL1.reset_noise()
+        self.NL2.reset_noise()
+
+
+class DQN:
     def __init__(self, state_dim, action_dim, cfg):
 
         self.action_dim = action_dim
         self.device = cfg.device  # cpu or gpu
         self.gamma = cfg.gamma  # discount factor
         self.frame_idx = 0  # attenuation
-        self.epsilon = lambda frame_idx: cfg.epsilon_end + \
-                                         (cfg.epsilon_start - cfg.epsilon_end) * \
-                                         math.exp(-1. * frame_idx / cfg.epsilon_decay)
         self.batch_size = cfg.batch_size
         self.policy_net = Network(state_dim, action_dim, hidden_dim=cfg.hidden_dim).to(self.device)
         self.target_net = Network(state_dim, action_dim, hidden_dim=cfg.hidden_dim).to(self.device)
@@ -117,13 +197,12 @@ class DDQN:
 
     def choose_action(self, state):
         self.frame_idx += 1
-        if random.random() > self.epsilon(self.frame_idx):
-            with torch.no_grad():
-                state = torch.tensor([state], device=self.device, dtype=torch.float32)
-                q_values = self.policy_net(state)
-                action = q_values.max(1)[1].item()  # choose the action with maximum q-value
-        else:
-            action = random.randrange(self.action_dim) # Buy or sell
+        
+        with torch.no_grad():
+            state = torch.tensor([state], device=self.device, dtype=torch.float32)
+            q_values = self.policy_net(state)
+            action = q_values.max(1)[1].item()  # choose the action with maximum q-value
+            
         return action
 
     def update(self):
@@ -138,13 +217,10 @@ class DDQN:
         next_state_batch = torch.tensor(next_state_batch, device=self.device, dtype=torch.float)
         done_batch = torch.tensor(np.float32(done_batch), device=self.device)
         q_values = self.policy_net(state_batch).gather(dim=1, index=action_batch)
-        next_q_values = (self.target_net(next_state_batch)
-                         .gather(dim=1, index=self.policy_net(next_state_batch).argmax(1,keepdim=True).detach())
-                         .detach().squeeze()
-         ) # DOUBLE Here
+        next_q_values = self.target_net(next_state_batch).max(1)[0].detach()
         # calculate the expected q-value, for final state, done_batch[0]=1 and the corresponding
         # expected_q_value equals to reward
-        expected_q_values = (reward_batch + self.gamma * next_q_values * (1 - done_batch)).to(self.device)
+        expected_q_values = reward_batch + self.gamma * next_q_values * (1 - done_batch)
         loss = nn.MSELoss()(q_values, expected_q_values.unsqueeze(1))
         # update the network
         self.optimizer.zero_grad()
@@ -152,6 +228,10 @@ class DDQN:
         for param in self.policy_net.parameters():  # avoid gradient explosion by using clip
             param.grad.data.clamp_(-1, 1)
         self.optimizer.step()
+
+        # Reset the noise 
+        self.policy_net.reset_noise()
+        self.target_net.reset_noise()
 
     def save(self, path):
         torch.save(self.target_net.state_dict(), path + 'dqn_checkpoint.pth')
@@ -197,9 +277,7 @@ def train(cfg, env, agent):
 def test(cfg, env, agent):
     print('Start Testing!')
     print(f'Environment: {cfg.env_name}, Algorithm: {cfg.algo_name}, Device: {cfg.device}')
-    ############# Test does not use e-greedy policy, so we set epsilon to 0 ###############
-    cfg.epsilon_start = 0.0
-    cfg.epsilon_end = 0.0
+
     ################################################################################
     stocks = env.tickers
     rewards = []  # record total rewards
@@ -223,7 +301,7 @@ def env_agent_config(data, cfg, mode):
     ''' create environment and agent
     '''
     env = TradingSystem_v0(data, cfg.state_space_dim, mode)
-    agent = DDQN(cfg.state_space_dim, cfg.action_space_dim, cfg)
+    agent = DQN(cfg.state_space_dim, cfg.action_space_dim, cfg)
     if cfg.seed != 0:  # set random seeds
         torch.manual_seed(cfg.seed)
         np.random.seed(cfg.seed)
@@ -237,7 +315,7 @@ class Config:
 
     def __init__(self):
         ################################## env hyperparameters ###################################
-        self.algo_name = 'DDQN' # algorithmic name
+        self.algo_name = 'noisyDQN' # algorithmic name
         self.env_name = 'custom_trading_env' # environment name
         self.device = torch.device(
             "cuda" if torch.cuda.is_available() else "cpu")  # examine GPU
@@ -249,9 +327,6 @@ class Config:
 
         ################################## algo hyperparameters ###################################
         self.gamma = 0.95  # discount factor
-        self.epsilon_start = 0.90  # start epsilon of e-greedy policy
-        self.epsilon_end = 0.01  # end epsilon of e-greedy policy
-        self.epsilon_decay = 500  # attenuation rate of epsilon in e-greedy policy
         self.lr = 0.0001  # learning rate
         self.memory_capacity = 500  # capacity of experience replay
         self.batch_size = 64  # size of mini-batch SGD

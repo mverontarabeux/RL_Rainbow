@@ -94,9 +94,7 @@ class Network(nn.Module):
 
     def forward(self, x):
         # activation function
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        return self.fc3(x)
+        return self.model(x)
 
 class DQN:
     def __init__(self, state_dim, action_dim, cfg):
@@ -324,7 +322,7 @@ if __name__ == '__main__':
     fig, ax = plt.subplots(1, 1, figsize=(10, 7))  # plot the test result
     width = 0.3
     x = np.arange(len(stocks))
-    ax.bar(x, rewards, width=width, color='salmon', label='DQN')
+    ax.bar(x, rewards, width=width, color='salmon', label=cfg.algo_name)
     ax.bar(x+width, buy_and_hold_rewards, width=width, color='orchid', label='Buy and Hold')
     ax.set_xticks(x+width/2)
     ax.set_xticklabels(stocks, fontsize=12)
