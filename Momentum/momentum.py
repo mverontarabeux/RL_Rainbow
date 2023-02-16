@@ -1,6 +1,5 @@
 import numpy as np
 
-
 def zscore_strategy(data_prices, window=5, threshold=0.0, long_only=False):
     assert len(data_prices.columns)==1
     data = data_prices.copy()
@@ -28,6 +27,7 @@ def zscore_strategy(data_prices, window=5, threshold=0.0, long_only=False):
 
     return data
 
+
 def sign_strategy(data_prices, window=252, long_only=False):
     assert len(data_prices.columns)==1
     data = data_prices.copy()
@@ -48,11 +48,12 @@ def sign_strategy(data_prices, window=252, long_only=False):
     return data
 
 if __name__ == '__main__':
-    import matplotlib.pyplot as plt
+    import sys
+    sys.path.insert(1, "C:\\Users\\mvero\\Desktop\\Cours\\M3\\Cours M3\\RL\\Projet\\RL_Rainbow\\")
 
+    import matplotlib.pyplot as plt
     # Get data 
-    from getdata import FinancialDataProvider
-    dataprovider = FinancialDataProvider()
+    from Data.getdata import get_tickers_prices, get_CAC40_tickers
 
     # Set the ticker we want to trade
     ticker = 'SPY'
@@ -62,8 +63,7 @@ if __name__ == '__main__':
     end_date = '2020-02-08'
 
     # load the data
-    data_provider = FinancialDataProvider()
-    all_data = data_provider.get_ticker(ticker, start_date, end_date)
+    all_data = get_tickers_prices(get_CAC40_tickers(), start_date, end_date)
 
     long_only = zscore_strategy(all_data, window=10, long_only=True)
     long_short = zscore_strategy(all_data, window=10, long_only=False)
