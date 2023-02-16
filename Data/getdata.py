@@ -9,7 +9,7 @@ COMPO_CAC40 = "C:\\Users\\mvero\\Desktop\\Cours\\M3\\Cours M3\\RL\\Projet\\RL_Ra
 
 
 def get_tickers_data(tickers, start_date, end_date, 
-                       clean_it=True, cumreturns_only=False):
+                       clean_it=True, returns_only=False, cumreturns_only=False):
     if isinstance(tickers, str):
         tickers = [tickers]
     assert isinstance(tickers, list)
@@ -17,15 +17,16 @@ def get_tickers_data(tickers, start_date, end_date,
     data = web.get_data_yahoo(tickers, start_date, end_date)
     if clean_it: # Keep only close data
         data = clean_data(data)
-        if cumreturns_only:
-            data = get_cumreturns_only(data)
+        if returns_only:
+            data = get_returns(data, cumulative=cumreturns_only)[1:]
     return data
 
-def get_cumreturns_only(data:pd.DataFrame):
+def get_returns(data:pd.DataFrame, cumulative=False):
     cumreturns_data = data.copy()
     for col in cumreturns_data.columns:
         new_serie = np.log(cumreturns_data[col] / cumreturns_data[col].shift(1))
-        cumreturns_data[col] = new_serie.cumsum()
+        cumreturns_data[col] = new_serie.cumsum() if cumulative else new_serie
+
     return cumreturns_data
 
 
@@ -121,7 +122,7 @@ if __name__=='__main__':
     plt.show()
 
     # Plot the cum returns of all components
-    cumreturns = get_cumreturns_only(all_data)
+    cumreturns = get_returns(all_data, cumulative=True)
     plt.plot(cumreturns)
     plt.show()
     

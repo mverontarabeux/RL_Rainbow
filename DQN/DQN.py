@@ -241,9 +241,9 @@ class Config:
         self.device = torch.device(
             "cuda" if torch.cuda.is_available() else "cpu")  # examine GPU
         self.seed = 11 # random seed
-        self.train_eps = 50 # training episodes
+        self.train_eps = 200 # training episodes
         self.state_space_dim = 50 # state space size (K-value)
-        self.action_space_dim = 2 # action space size (short: 0, neutral: 1, long: 2)
+        self.action_space_dim = 3 # action space size (short: 0, neutral: 1, long: 2)
         ################################################################################
 
         ################################## algo hyperparameters ###################################
@@ -252,7 +252,7 @@ class Config:
         self.epsilon_end = 0.01  # end epsilon of e-greedy policy
         self.epsilon_decay = 500  # attenuation rate of epsilon in e-greedy policy
         self.lr = 0.0001  # learning rate
-        self.memory_capacity = 200  # capacity of experience replay
+        self.memory_capacity = 500  # capacity of experience replay
         self.batch_size = 64  # size of mini-batch SGD
         self.target_update = 4  # update frequency of target network
         self.hidden_dim = 128  # dimension of hidden layer
@@ -271,7 +271,6 @@ class Config:
 
 if __name__ == '__main__':
 
-    # some_file.py
     import sys
     sys.path.insert(1, "C:\\Users\\mvero\\Desktop\\Cours\\M3\\Cours M3\\RL\\Projet\\RL_Rainbow\\")
 
@@ -280,24 +279,24 @@ if __name__ == '__main__':
     # Get the tickers on which we will train
     all_tickers = get_CAC40_tickers()
     nb_tickers = len(all_tickers)
-    train_tickers = all_tickers[:int(nb_tickers*2/3)]
-    test_tickers = all_tickers[int(nb_tickers*2/3):]
+    train_tickers = all_tickers[:10]
+    test_tickers = all_tickers[-5:]
 
     # Set the dates
-    train_start_date = '2015-01-02'
-    train_end_date = '2020-12-30'
-    test_start_date = '2021-01-02'
-    test_end_date = '2023-02-15'
+    start_date = '2015-01-02'
+    end_date = '2023-02-15'
 
     # Get all returns 
     train_returns = get_tickers_data(tickers=train_tickers, 
-                                    start_date=train_start_date,
-                                    end_date=train_end_date,
-                                    cumreturns_only=True)
+                                    start_date=start_date,
+                                    end_date=end_date,
+                                    returns_only=True)
+    print(f"Train returns shape = {train_returns.shape}")
     test_returns = get_tickers_data(tickers=test_tickers, 
-                                    start_date=test_start_date,
-                                    end_date=test_end_date,
-                                    cumreturns_only=True)
+                                    start_date=start_date,
+                                    end_date=end_date,
+                                    returns_only=True)
+    print(f"Test returns shape = {test_returns.shape}")
 
     ################ parametrisation ################
     cfg = Config()
