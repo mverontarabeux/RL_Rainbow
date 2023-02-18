@@ -276,7 +276,7 @@ if __name__ == '__main__':
 
     import sys
     sys.path.insert(1, "C:\\Users\\mvero\\Desktop\\Cours\\M3\\Cours M3\\RL\\Projet\\RL_Rainbow\\")
-
+    import time
     from Data.getdata import get_CAC40_tickers, get_tickers_data
 
     # Get the tickers on which we will train
@@ -286,7 +286,7 @@ if __name__ == '__main__':
     test_tickers = all_tickers[-5:]
 
     # Set the dates
-    train_start_date = '2015-01-02'
+    train_start_date = '2020-01-02'
     train_end_date = '2021-12-30'
     test_start_date = '2022-01-02'
     test_end_date = '2023-02-15'
@@ -310,6 +310,7 @@ if __name__ == '__main__':
     env, agent = env_agent_config(train_returns, cfg, 'train')
 
     ################ Training ################
+    begin = time.time()
     rewards, ma_rewards = train(cfg, env, agent)
     os.makedirs(cfg.result_path)  # create output folders
     os.makedirs(cfg.model_path)
@@ -320,7 +321,7 @@ if __name__ == '__main__':
     ax.legend()
     ax.set_xlabel('Episode')
     plt.savefig(cfg.result_path+'train.jpg')
-
+    print(f"Train passed in {time.time()-begin} min")
     ################ Testing ################
     env, agent = env_agent_config(test_returns, cfg, 'test')
     agent.load(path=cfg.model_path)  # load model

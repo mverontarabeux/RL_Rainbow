@@ -68,8 +68,12 @@ class RainbowNetwork(nn.Module):
         return dist
 
     def reset_noise(self):
-        self.advantage.reset_noise()
-        self.value.reset_noise()
+        for network in self.advantage:
+            if isinstance(network, NoisyLinear):
+                network.reset_noise()
+        for network in self.value: 
+            if isinstance(network, NoisyLinear):
+                network.reset_noise()
 
 
 class Rainbow:
@@ -133,7 +137,7 @@ class Rainbow:
 
         # 1 step learning loss
         elementwise_loss = self.rainbow_loss(state_batch, action_batch, reward_batch, next_state_batch, done_batch,
-                                             self.gamma)
+                                             self.gamma, reformate=True)
 
         # n step learning loss 
         state_batch, action_batch, reward_batch, next_state_batch, done_batch = self.n_step_memory.sample_batch_from_idxs(
@@ -144,7 +148,7 @@ class Rainbow:
         elementwise_loss += elementwise_n_loss   
 
         # Prioritized weighting : 
-        loss = torch.mean(elementwise_loss * weights)
+        loss = torch.mean(elementwise_loss * torch.tensor(weights))
 
         # update the network
         self.optimizer.zero_grad()
@@ -163,13 +167,14 @@ class Rainbow:
         self.target_net.reset_noise()
 
     def rainbow_loss(self, state, action, reward, next_state, done,
-                    gamma):
-        # transfer to tensor
-        state_batch = torch.tensor(state, device=self.device, dtype=torch.float)
-        action_batch = torch.tensor(action, device=self.device).unsqueeze(1)
-        reward_batch = torch.tensor(reward, device=self.device, dtype=torch.float)
-        next_state_batch = torch.tensor(next_state, device=self.device, dtype=torch.float)
-        done_batch = torch.tensor(np.float32(done), device=self.device)
+                    gamma, reformate=False):
+
+        # transfer to tensor if needed (sample_batch_from_idxs already does it)
+        state_batch = torch.tensor(state, device=self.device, dtype=torch.float) if reformate else state
+        action_batch = torch.tensor(action, device=self.device).unsqueeze(1) if reformate else action
+        reward_batch = torch.tensor(reward, device=self.device, dtype=torch.float) if reformate else reward
+        next_state_batch = torch.tensor(next_state, device=self.device, dtype=torch.float) if reformate else next_state
+        done_batch = torch.tensor(np.float32(done), device=self.device) if reformate else done
 
         # Distributional DQN algo
         delta_z = float(self.v_max - self.v_min) / (self.atom_size - 1)
@@ -372,7 +377,7 @@ if __name__ == '__main__':
     test_tickers = all_tickers[-5:]
 
     # Set the dates
-    train_start_date = '2015-01-02'
+    train_start_date = '2020-01-02'
     train_end_date = '2021-12-30'
     test_start_date = '2022-01-02'
     test_end_date = '2023-02-15'

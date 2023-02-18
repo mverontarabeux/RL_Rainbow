@@ -3,7 +3,6 @@ from typing import Dict, List, Tuple
 
 import math
 import random
-import gym
 
 import datetime as dt
 import matplotlib.pyplot as plt
@@ -360,7 +359,7 @@ if __name__ == '__main__':
     test_tickers = all_tickers[-5:]
 
     # Set the dates
-    train_start_date = '2015-01-02'
+    train_start_date = '2020-01-02'
     train_end_date = '2021-12-30'
     test_start_date = '2022-01-02'
     test_end_date = '2023-02-15'

@@ -3,7 +3,6 @@ from typing import Dict, List, Tuple
 
 import math
 import random
-import gym
 
 import datetime as dt
 import matplotlib.pyplot as plt
@@ -14,7 +13,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 
 # Need to remove the dot if want to launch only this file
-from .segment_tree import MinSegmentTree, SumSegmentTree
+from segment_tree import MinSegmentTree, SumSegmentTree
 
 class TradingSystem_v0:
     def __init__(self, returns_data, k_value, mode):
@@ -379,7 +378,7 @@ if __name__ == '__main__':
     sys.path.insert(1, "C:\\Users\\mvero\\Desktop\\Cours\\M3\\Cours M3\\RL\\Projet\\RL_Rainbow\\")
 
     from Data.getdata import get_CAC40_tickers, get_tickers_data
-
+    
     # Get the tickers on which we will train
     all_tickers = get_CAC40_tickers()
     nb_tickers = len(all_tickers)
@@ -387,7 +386,7 @@ if __name__ == '__main__':
     test_tickers = all_tickers[-5:]
 
     # Set the dates
-    train_start_date = '2015-01-02'
+    train_start_date = '2020-01-02'
     train_end_date = '2021-12-30'
     test_start_date = '2022-01-02'
     test_end_date = '2023-02-15'
