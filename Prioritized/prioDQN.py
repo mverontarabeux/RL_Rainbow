@@ -387,18 +387,20 @@ if __name__ == '__main__':
     test_tickers = all_tickers[-5:]
 
     # Set the dates
-    start_date = '2015-01-02'
-    end_date = '2023-02-15'
+    train_start_date = '2015-01-02'
+    train_end_date = '2021-12-30'
+    test_start_date = '2022-01-02'
+    test_end_date = '2023-02-15'
 
     # Get all returns 
     train_returns = get_tickers_data(tickers=train_tickers, 
-                                    start_date=start_date,
-                                    end_date=end_date,
+                                    start_date=train_start_date,
+                                    end_date=train_end_date,
                                     returns_only=True)
     print(f"Train returns shape = {train_returns.shape}")
     test_returns = get_tickers_data(tickers=test_tickers, 
-                                    start_date=start_date,
-                                    end_date=end_date,
+                                    start_date=test_start_date,
+                                    end_date=test_end_date,
                                     returns_only=True)
     print(f"Test returns shape = {test_returns.shape}")
 
