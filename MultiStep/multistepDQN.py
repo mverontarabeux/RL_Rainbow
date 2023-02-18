@@ -178,10 +178,9 @@ class multistepDQN:
 
         self.memory = MultiStepReplayBuffer(cfg.memory_capacity, n_step=1)  # experience replay
         self.n_step = cfg.n_step
-        self.n_step_gamma = cfg.n_step_gamma
         self.n_step_memory = MultiStepReplayBuffer(cfg.memory_capacity, 
                                           n_step=self.n_step, 
-                                          gamma=self.n_step_gamma)  # n_step experience replay
+                                          gamma=self.gamma)  # n_step experience replay
 
     def choose_action(self, state):
         self.frame_idx += 1
@@ -345,8 +344,6 @@ class Config:
         self.hidden_dim = 128  # dimension of hidden layer
         
         self.n_step = 10
-        self.n_step_gamma = 0.95
-
         ################################################################################
 
         ################################# save path ##############################

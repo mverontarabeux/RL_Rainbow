@@ -2,7 +2,6 @@ import os
 from typing import Dict, List, Tuple
 
 import datetime as dt
-import matplotlib.pyplot as plt
 import torch
 
 dict_algo_folder = {
@@ -12,7 +11,8 @@ dict_algo_folder = {
     "distriDQN":"Distributional",
     "multistepDQN":"MultiStep",
     "noisyDQN":"Noisy",
-    "Rainbow":"",
+    "prioDQN":"Prioritized",
+    "rainbow":"",
 }
 
 class ConfigBase:
@@ -47,10 +47,9 @@ class ConfigBase:
         ################################# save path ##############################
         curr_path = os.path.dirname(__file__)
         curr_time = dt.datetime.now().strftime("%Y%m%d-%H%M%S")
-        self.result_path = curr_path + "/outputs/" + self.env_name + \
-                           '/' + curr_time + '/results/'
-        self.model_path = curr_path + "/outputs/" + self.env_name + \
-                          '/' + curr_time + '/models/'
+        middle_path = "\\" + dict_algo_folder[algo] if algo !="Rainbow" else ""
+        self.result_path = curr_path + middle_path +  "\\outputs\\" 
+        self.model_path = curr_path + middle_path +  "\\outputs\\" 
         self.save = True  # whether to save the image
         ################################################################################
 
@@ -91,6 +90,8 @@ if __name__ == '__main__':
     # Import all the modules
     #####################################################
     import pandas as pd
+    import numpy as np 
+    import matplotlib.pyplot as plt
     from Data.getdata import get_CAC40_tickers, get_tickers_data
     from DQN import DQN
     from DDQN import DDQN
@@ -98,7 +99,7 @@ if __name__ == '__main__':
     from Distributional import distriDQN
     from MultiStep import multistepDQN
     from Noisy import noisyDQN
-    #from Prioritized import prioDQN
+    from Prioritized import prioDQN
     import rainbow
 
     #####################################################
@@ -132,7 +133,7 @@ if __name__ == '__main__':
     agent.load(path=config.model_path)  # load model
     stocks, rewards, rewards_series = test_with_returns(config, env, agent)
     df = pd.DataFrame({stocks[i]:rewards_series[i] for i in range(len(stocks))})
-    dict_series_by_algo["DQN"] = df
+    dict_series_by_algo["DQN"] = df.cumsum()
     
     ########## DDQN ##########
     config = ConfigBase("DDQN")
@@ -141,17 +142,7 @@ if __name__ == '__main__':
     agent.load(path=config.model_path)  # load model
     stocks, rewards, rewards_series = test_with_returns(config, env, agent)
     df = pd.DataFrame({stocks[i]:rewards_series[i] for i in range(len(stocks))})
-    dict_series_by_algo["DDQN"] = df
-
-    ########## Dueling DQN ##########
-    config = ConfigBase("duelingDQN")
-
-    env, agent = duelingDQN.env_agent_config(test_returns, config, 'test')
-    agent.load(path=config.model_path)  # load model
-    stocks, rewards, rewards_series = test_with_returns(config, env, agent)
-    df = pd.DataFrame({stocks[i]:rewards_series[i] for i in range(len(stocks))})
-    dict_series_by_algo["duelingDQN"] = df
-
+    dict_series_by_algo["DDQN"] = df.cumsum()
 
     ########## Distributional DQN ##########
     config = ConfigBase("distriDQN")
@@ -164,7 +155,16 @@ if __name__ == '__main__':
     agent.load(path=config.model_path)  # load model
     stocks, rewards, rewards_series = test_with_returns(config, env, agent)
     df = pd.DataFrame({stocks[i]:rewards_series[i] for i in range(len(stocks))})
-    dict_series_by_algo["distriDQN"] = df
+    dict_series_by_algo["distriDQN"] = df.cumsum()
+
+    ########## Dueling DQN ##########
+    config = ConfigBase("duelingDQN")
+
+    env, agent = duelingDQN.env_agent_config(test_returns, config, 'test')
+    agent.load(path=config.model_path)  # load model
+    stocks, rewards, rewards_series = test_with_returns(config, env, agent)
+    df = pd.DataFrame({stocks[i]:rewards_series[i] for i in range(len(stocks))})
+    dict_series_by_algo["duelingDQN"] = df.cumsum()
 
     ########## MultiStep DQN ##########
     config = ConfigBase("multistepDQN")
@@ -174,7 +174,7 @@ if __name__ == '__main__':
     agent.load(path=config.model_path)  # load model
     stocks, rewards, rewards_series = test_with_returns(config, env, agent)
     df = pd.DataFrame({stocks[i]:rewards_series[i] for i in range(len(stocks))})
-    dict_series_by_algo["multistepDQN"] = df
+    dict_series_by_algo["multistepDQN"] = df.cumsum()
 
     ########## Noisy DQN ##########
     config = ConfigBase("noisyDQN")
@@ -184,9 +184,9 @@ if __name__ == '__main__':
     agent.load(path=config.model_path)  # load model
     stocks, rewards, rewards_series = test_with_returns(config, env, agent)
     df = pd.DataFrame({stocks[i]:rewards_series[i] for i in range(len(stocks))})
-    dict_series_by_algo["noisyDQN"] = df
+    dict_series_by_algo["noisyDQN"] = df.cumsum()
 
-    """
+
     ########## Prioritized DQN ##########
     config = ConfigBase("prioDQN")
     config.alpha = 0.2
@@ -197,7 +197,7 @@ if __name__ == '__main__':
     agent.load(path=config.model_path)  # load model
     stocks, rewards, rewards_series = test_with_returns(config, env, agent)
     df = pd.DataFrame({stocks[i]:rewards_series[i] for i in range(len(stocks))})
-    dict_series_by_algo["prioDQN"] = df
+    dict_series_by_algo["prioDQN"] = df.cumsum()
 
     ########## Rainbow DQN ##########
     config = ConfigBase("rainbow")
@@ -211,23 +211,28 @@ if __name__ == '__main__':
     config.v_min = - 0.15
     config.v_max = 0.15 # Proxy of the daily returns MINMAX range
     config.atom_size = 51
-    config.support = torch.linspace(config.v_min, config.v_max, config.atom_size).to(config_DQN.device)
+    config.support = torch.linspace(config.v_min, config.v_max, config.atom_size).to(config.device)
 
     env, agent = rainbow.env_agent_config(test_returns, config, 'test')
     agent.load(path=config.model_path)  # load model
     stocks, rewards, rewards_series = test_with_returns(config, env, agent)
     df = pd.DataFrame({stocks[i]:rewards_series[i] for i in range(len(stocks))})
-    dict_series_by_algo["rainbow"] = df
+    dict_series_by_algo["rainbow"] = df.cumsum()
 
     #####################################################
     # Formatting the dictionnary of series by algorithms
     #####################################################
-    full_df = pd.DataFrame(dict_series_by_algo)
-    
+
+    full_df = pd.concat(dict_series_by_algo.values(), axis=1) 
+    full_df.columns = [full_df.columns, list(np.repeat(list(dict_series_by_algo.keys()),len(test_tickers)))]
+
     #####################################################
     # Define and save the plot
     #####################################################
-    #for algo in full_df:
-        
-    """
-
+    for ticker in test_tickers:
+        plt.plot(full_df[ticker].iloc[:,:-1], linewidth=1)
+        plt.plot(full_df[ticker].iloc[:,-1], color='black', linewidth=3)
+        plt.title(ticker)
+        plt.legend(["DQN","DDQN","Distributional", "Dueling", "Multi-step","Noisy","Prioritized","Rainbow",])
+        plt.savefig(ticker + ".jpeg")
+        plt.clf()
