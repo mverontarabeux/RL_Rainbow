@@ -176,6 +176,7 @@ class Network(nn.Module):
 
 class prioDQN:
     def __init__(self, state_dim, action_dim, cfg):
+        self.algo = cfg.algo_name
 
         self.action_dim = action_dim
         self.device = cfg.device  # cpu or gpu
@@ -210,7 +211,7 @@ class prioDQN:
     def update(self):
         if len(self.memory) < self.batch_size:
             return
-        # Sample first
+        # Sample first with prio
         state_batch, action_batch, reward_batch, next_state_batch, done_batch, weights, indices = self.memory.sample(
             self.beta)
 
@@ -244,10 +245,10 @@ class prioDQN:
         self.memory.update_priorities(indices, new_priorities)
 
     def save(self, path):
-        torch.save(self.target_net.state_dict(), path + 'dqn_checkpoint.pth')
+        torch.save(self.target_net.state_dict(), path + self.algo + '_checkpoint.pth')
 
     def load(self, path):
-        self.target_net.load_state_dict(torch.load(path + 'dqn_checkpoint.pth'))
+        self.target_net.load_state_dict(torch.load(path + self.algo + '_checkpoint.pth'))
         for target_param, param in zip(self.target_net.parameters(), self.policy_net.parameters()):
             param.data.copy_(target_param.data)
 
