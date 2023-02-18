@@ -249,7 +249,7 @@ if __name__ == '__main__':
         leg.append(f"{all_algo_ordered[-1]} _ std={round(std_list[-1],3)}")
 
         # Add the buy and hold
-        buy_and_hold = test_returns[ticker].cumsum()[50:].reset_index(drop=True) # 50 because of the K in the algos
+        buy_and_hold = test_returns[ticker][50:].cumsum().reset_index(drop=True) # 50 because of the K in the algos
         std_list.append(buy_and_hold.std())
         plt.plot(buy_and_hold, color='red', linewidth=2)
         leg.append(f"Buy and Hold _ std={round(std_list[-1],3)}")
@@ -281,7 +281,7 @@ if __name__ == '__main__':
     plt.plot(equipondere_index, color='black', linewidth=3, label=f"{all_algo_ordered[-1]} _ std={round(std_list[-1],3)}")
 
     # And finally buy and hold
-    buy_and_hold = test_returns.mean(axis=1).cumsum()[50:].reset_index(drop=True) # 50 because of the K in the algos
+    buy_and_hold = test_returns.mean(axis=1)[50:].cumsum().reset_index(drop=True) # 50 because of the K in the algos
     std_list.append(buy_and_hold.std())
     plt.plot(buy_and_hold, color='red', linewidth=2, label=f"Buy and Hold _ std={round(std_list[-1],3)}")
 
