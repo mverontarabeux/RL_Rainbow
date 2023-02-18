@@ -19,6 +19,8 @@ from Prioritized.prioDQN import PrioritizedReplayBuffer
 from Noisy.noisyDQN import NoisyLinear
 from Prioritized.segment_tree import MinSegmentTree, SumSegmentTree
 
+random_seed = 42
+torch.manual_seed(random_seed)
 
 class RainbowNetwork(nn.Module):
     """Combine NoisyNet + DuelingNet + Categorical DQN """

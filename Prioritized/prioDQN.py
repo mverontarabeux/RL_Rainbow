@@ -12,6 +12,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 
+random_seed = 42
+torch.manual_seed(random_seed)
+
 # Need to remove the dot if want to launch only this file
 from .segment_tree import MinSegmentTree, SumSegmentTree
 

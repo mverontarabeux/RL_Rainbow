@@ -102,6 +102,9 @@ if __name__ == '__main__':
     from Prioritized import prioDQN
     import rainbow
 
+    random_seed = 42
+    torch.manual_seed(random_seed)
+
     #####################################################
     # Get the testing data 
     #####################################################
@@ -226,13 +229,65 @@ if __name__ == '__main__':
     full_df = pd.concat(dict_series_by_algo.values(), axis=1) 
     full_df.columns = [full_df.columns, list(np.repeat(list(dict_series_by_algo.keys()),len(test_tickers)))]
 
+    full_df_index = full_df.swaplevel(axis=1)
+    
     #####################################################
     # Define and save the plot
     #####################################################
+    all_algo_ordered = ["DQN","DDQN","Distributional", "Dueling", "Multi-step","Noisy","Prioritized","Rainbow"]
+    all_algo_method_ordered = ["DQN","DDQN","distriDQN", "duelingDQN", "multistepDQN","noisyDQN","prioDQN","rainbow"]
+
     for ticker in test_tickers:
+        plt.figure(figsize=(9,4))
         plt.plot(full_df[ticker].iloc[:,:-1], linewidth=1)
+        std_list = list(full_df[ticker].iloc[:,:-1].std())
+        leg = [f"{all_algo_ordered[i]} _ std={round(std_list[i],3)}" for i in range(len(all_algo_ordered[:-1]))]
+
+        # Add the rainbow, thicker
         plt.plot(full_df[ticker].iloc[:,-1], color='black', linewidth=3)
+        std_list.append(full_df[ticker].iloc[:,-1].std())
+        leg.append(f"{all_algo_ordered[-1]} _ std={round(std_list[-1],3)}")
+
+        # Add the buy and hold
+        buy_and_hold = test_returns[ticker].cumsum()[50:].reset_index(drop=True) # 50 because of the K in the algos
+        std_list.append(buy_and_hold.std())
+        plt.plot(buy_and_hold, color='red', linewidth=2)
+        leg.append(f"Buy and Hold _ std={round(std_list[-1],3)}")
+
+        plt.axhline(y=0, color='black', linestyle='-')
         plt.title(ticker)
-        plt.legend(["DQN","DDQN","Distributional", "Dueling", "Multi-step","Noisy","Prioritized","Rainbow",])
+        plt.plot(buy_and_hold, color='red', linewidth=2, label=f"Buy and Hold _ std={round(std_list[-1],3)}")
+        plt.legend(leg, bbox_to_anchor=(1, 0.5), loc='center left')
+        plt.tight_layout()
         plt.savefig(ticker + ".jpeg")
         plt.clf()
+
+    #####################################################
+    # Get equally-weighted portfolio by algo
+    #####################################################
+    std_list = []
+    # All but Rainbow
+    plt.figure(figsize=(10,5))
+    for i in range(len(all_algo_method_ordered[:-1])):
+        algo_method = all_algo_method_ordered[i]
+        algo = all_algo_ordered[i]
+        equipondere_index = full_df_index[algo_method].mean(axis=1)
+        std_list.append(equipondere_index.std())
+        plt.plot(equipondere_index, linewidth=1, label=f"{algo} _ std={round(std_list[i],3)}")
+
+    # Rainbow now
+    equipondere_index = full_df_index[all_algo_method_ordered[-1]].mean(axis=1)
+    std_list.append(equipondere_index.std())
+    plt.plot(equipondere_index, color='black', linewidth=3, label=f"{all_algo_ordered[-1]} _ std={round(std_list[-1],3)}")
+
+    # And finally buy and hold
+    buy_and_hold = test_returns.mean(axis=1).cumsum()[50:].reset_index(drop=True) # 50 because of the K in the algos
+    std_list.append(buy_and_hold.std())
+    plt.plot(buy_and_hold, color='red', linewidth=2, label=f"Buy and Hold _ std={round(std_list[-1],3)}")
+
+    plt.axhline(y=0, color='black', linestyle='-')
+    plt.title("Equally-weighted portfolio by algorithm")
+    plt.legend(bbox_to_anchor=(1, 0.5), loc='center left')
+    plt.tight_layout()
+    plt.savefig("equallyweighted.jpeg")
+    plt.clf()

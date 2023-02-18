@@ -12,6 +12,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 
+random_seed = 42
+torch.manual_seed(random_seed)
 
 class TradingSystem_v0:
     def __init__(self, returns_data, k_value, mode):
