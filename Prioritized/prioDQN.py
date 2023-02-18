@@ -1,4 +1,3 @@
-from segment_tree import MinSegmentTree, SumSegmentTree
 import os
 from typing import Dict, List, Tuple
 
@@ -14,6 +13,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 
+# Need to remove the dot if want to launch only this file
+from .segment_tree import MinSegmentTree, SumSegmentTree
 
 class TradingSystem_v0:
     def __init__(self, returns_data, k_value, mode):

@@ -1,5 +1,3 @@
-from Prioritized.segment_tree import MinSegmentTree, SumSegmentTree
-
 import os
 from typing import Dict, List, Tuple, Deque
 
@@ -19,6 +17,7 @@ from DQN.DQN import TradingSystem_v0
 from MultiStep.multistepDQN import MultiStepReplayBuffer
 from Prioritized.prioDQN import PrioritizedReplayBuffer
 from Noisy.noisyDQN import NoisyLinear
+from Prioritized.segment_tree import MinSegmentTree, SumSegmentTree
 
 
 class RainbowNetwork(nn.Module):
@@ -60,7 +59,7 @@ class RainbowNetwork(nn.Module):
     def dist(self, x):
         # Get feature/value from dueling
         feature = self.feature(x)
-        value = self.value(feature).view(-1, self.action_dim, self.atom_size)
+        value = self.value(feature)[:,None,:]
         advantage = self.advantage(feature).view(-1, self.action_dim, self.atom_size)
         # Compute the distribution of atoms
         q_atoms = value + advantage - advantage.mean(dim=1, keepdim=True)
@@ -137,7 +136,7 @@ class Rainbow:
                                              self.gamma)
 
         # n step learning loss 
-        state_batch, action_batch, reward_batch, next_state_batch, done_batch = self.memory.sample_batch_from_idxs(
+        state_batch, action_batch, reward_batch, next_state_batch, done_batch = self.n_step_memory.sample_batch_from_idxs(
             indices, self.device)
         gamma = self.gamma ** self.n_step
         elementwise_n_loss = self.rainbow_loss(state_batch, action_batch, reward_batch, next_state_batch, done_batch,
@@ -337,9 +336,9 @@ class Config:
         self.n_step = 10
 
         # PER parameters
-        self.alpha = 0.2,
-        self.beta = 0.6,
-        self.prior_eps = 1e-6,
+        self.alpha = 0.2
+        self.beta = 0.6
+        self.prior_eps = 1e-6
 
         # Categorical DQN parameters
         self.v_min = - 0.15
